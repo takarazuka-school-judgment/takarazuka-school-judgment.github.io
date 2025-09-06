@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>宝塚小学校 登校判断アプリ</title>
+  <meta name="description" content="宝塚小学校の登校判断を簡単に確認できるWebアプリ。警報発令中かどうか、登校の可否や理由、給食情報などを表示します。" />
+  <meta name="keywords" content="宝塚小学校, 登校判断, 警報, 給食, 学校, 天気" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- OGP / SNSプレビュー用 -->
+  <meta property="og:title" content="宝塚小学校 登校判断アプリ" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://takarazuka-school-judgment.github.io" />
+  <meta property="og:description" content="宝塚小学校の登校判断を簡単に確認できるWebアプリです。警報発令中かどうか、登校の可否や理由、給食情報などを表示します。" />
+  <meta property="og:site_name" content="宝塚小学校 登校判断アプリ" />
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
+
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #fff;
+      margin: 0;
+      padding: 5px 10px 70px;
+    }
+
+    .card {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 0;
+      box-shadow: none;
+      width: 100%;
+    }
+
+    h1 {
+      text-align: center;
+      color: #1677c1;
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+
+    .datetime {
+      text-align: center;
+      color: #555;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      background-color: #f5faff;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+
+    .row i {
+      font-size: 1.2rem;
+      margin-right: 10px;
+      color: #1677c1;
+      width: 28px;
+      text-align: center;
+    }
+
+    .row label {
+      font-weight: bold;
+      flex: 1;
+      font-size: 1rem;
+    }
+
+    .row span {
+      color: #333;
+      font-size: 1rem;
+    }
+
+    .accordion {
+      margin-top: 16px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #cce7ff;
+    }
+
+    .accordion-header {
+      background-color: #e8f7ff;
+      color: #1677c1;
+      cursor: pointer;
+      padding: 12px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .accordion-header i {
+      margin-right: 6px;
+    }
+
+    .accordion-content {
+      background-color: #f9fdff;
+      padding: 12px;
+      font-size: 0.85rem;
+      color: #444;
+      display: none;
+    }
+
+    .accordion-content.open {
+      display: block;
+    }
+
+    .footer-remark {
+      margin-top: 30px;
+      font-size: 0.75rem;
+      color: #888;
+      text-align: left;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 700px;
+      background: #1677c1;
+      border-radius: 0;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 8px 0;
+      box-sizing: border-box;
+      z-index: 1000;
+      border-top: none;
+    }
+
+    .bottom-nav a {
+      color: #fff;
+      text-decoration: none;
+      font-size: 26px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 60px;
+      user-select: none;
+      transition: color 0.2s ease;
+    }
+
+    .bottom-nav a:hover {
+      color: #a9d1ff;
+    }
+
+    .bottom-nav a span {
+      font-size: 0.65rem;
+      margin-top: 4px;
+    }
+
+    .bottom-nav a.line-icon {
+      color: #fff;
+    }
+
+    @media screen and (max-width: 680px) {
+      body {
+        padding: 5px 10px 70px;
+      }
+
+      .card {
+        width: 100%;
+        padding: 14px;
+      }
+
+      h1 {
+        font-size: 1.6rem;
+      }
+
+      .row label,
+      .row span {
+        font-size: 1.1rem;
+      }
+
+      .row i {
+        font-size: 1.4rem;
+        width: 24px;
+      }
+
+      .accordion-content {
+        font-size: 0.9rem;
+      }
+
+      .bottom-nav a {
+        font-size: 22px;
+        width: 50px;
+      }
+
+      .bottom-nav a span {
+        font-size: 0.6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>宝塚小学校 登校判断</h1>
+    <div class="datetime" id="datetime">0000/00/00 00:00 時点</div>
+
+    <div class="row">
+      <i class="fas fa-exclamation-triangle"></i>
+      <label>発令中の警報</label>
+      <span id="alerts">読み込み中...</span>
+    </div>
+    <div class="row">
+      <i class="fas fa-school"></i>
+      <label>登校判断</label>
+      <span id="judgment">読み込み中...</span>
+    </div>
+    <div class="row">
+      <i class="fas fa-comment-dots"></i>
+      <label>理由</label>
+      <span id="reason">読み込み中...</span>
+    </div>
+    <div class="row">
+      <i class="fas fa-utensils"></i>
+      <label>給食</label>
+      <span id="lunch">読み込み中...</span>
+    </div>
+    <div class="row">
+      <i class="fas fa-file-alt"></i>
+      <label>備考</label>
+      <span id="remark">読み込み中...</span>
+    </div>
+
+    <div class="accordion">
+      <div class="accordion-header" onclick="toggleAccordion()">
+        <div><i class="fas fa-info-circle"></i>登校判断ルール</div>
+        <i id="accordion-icon" class="fas fa-chevron-down"></i>
+      </div>
+      <div id="accordion-content" class="accordion-content">
+        <b>・7:00時点で警報が発令中</b><br>　→ 自宅待機（給食なし）<br>
+        <b>・7:00時点で警報が解除済</b><br>　→ 集団登校（給食あり・遅刻扱いなし）<br>
+        <b>・9:00時点でも警報が継続</b><br>　→ 臨時休校<br>
+        <b>・7:00〜9:00に警報が解除済</b><br>　→ 集団登校（給食なし・12時下校・遅刻扱いなし）<br>
+        <b>・登校中（7:30〜8:30ごろ）に警報が発令</b><br>　→ 自宅付近なら待機、それ以外は登校
+      </div>
+    </div>
+
+    <div class="footer-remark">
+      ※ 本システムは参考情報として有志が作成したものであり、最終判断は各ご家庭の責任で行ってください。学校や自治体の公式情報ではありません。夏休みなどの長期休暇中や祝日も通知や登校判断が行われる場合があります。
+    </div>
+  </div>
+
+  <nav class="bottom-nav" aria-label="ページ下部ナビゲーション">
+    <a href="javascript:reloadData()" title="ホーム">
+      <i class="fas fa-home"></i>
+      <span>ホーム</span>
+    </a>
+    <a href="judgment-log.html" title="登校判断履歴">
+      <i class="fas fa-school"></i>
+      <span>判断履歴</span>
+    </a>
+    <a href="alert-log.html" title="警報履歴">
+      <i class="fas fa-exclamation-triangle"></i>
+      <span>警報履歴</span>
+    </a>
+    <a href="https://line.me/R/ti/p/@098cxpyz" target="_blank" rel="noopener" class="line-icon" title="LINE公式アカウント">
+      <i class="fab fa-line"></i>
+      <span>LINE</span>
+    </a>
+  </nav>
+
+  <script>
+    function updateUI(data) {
+      if (!data || (!data.alert && !data.judgment)) {
+        document.getElementById('datetime').innerText = '本日のデータなし';
+        document.getElementById('alerts').innerText = '－';
+        document.getElementById('judgment').innerText = '－';
+        document.getElementById('reason').innerText = '－';
+        document.getElementById('lunch').innerText = '－';
+        document.getElementById('remark').innerText = '－';
+        return;
+      }
+      document.getElementById('datetime').innerText = data.datetime || '不明な日時';
+      document.getElementById('alerts').innerText = data.alert ? data.alert.types : '－';
+      if (data.judgment) {
+        document.getElementById('judgment').innerText = data.judgment.judgment;
+        document.getElementById('reason').innerText = data.judgment.reason;
+        document.getElementById('lunch').innerText = data.judgment.lunch;
+        document.getElementById('remark').innerText = data.judgment.remark;
+      } else {
+        document.getElementById('judgment').innerText = '－';
+        document.getElementById('reason').innerText = '－';
+        document.getElementById('lunch').innerText = '－';
+        document.getElementById('remark').innerText = '－';
+      }
+    }
+
+    function jsonpCallback(data) {
+      updateUI(data);
+    }
+
+    function reloadData() {
+      document.getElementById('datetime').innerText = '読み込み中...';
+      document.getElementById('alerts').innerText = '読み込み中...';
+      document.getElementById('judgment').innerText = '読み込み中...';
+      document.getElementById('reason').innerText = '読み込み中...';
+      document.getElementById('lunch').innerText = '読み込み中...';
+      document.getElementById('remark').innerText = '読み込み中...';
+      const apiUrl = "https://script.google.com/macros/s/AKfycby1p3Mof7PFalZmzISlNjDG4iRQgVkFMcAacn229jtO09_a3zgM0eWAUT3n5wRsHKparQ/exec?page=home&callback=jsonpCallback";
+      const oldScript = document.getElementById('jsonpScript');
+      if (oldScript) oldScript.remove();
+      const script = document.createElement('script');
+      script.src = apiUrl;
+      script.id = 'jsonpScript';
+      document.body.appendChild(script);
+    }
+
+    window.onload = reloadData;
+
+    function toggleAccordion() {
+      const content = document.getElementById('accordion-content');
+      const icon = document.getElementById('accordion-icon');
+      if (content.classList.contains('open')) {
+        content.classList.remove('open');
+        icon.classList.replace('fa-chevron-up','fa-chevron-down');
+      } else {
+        content.classList.add('open');
+        icon.classList.replace('fa-chevron-down','fa-chevron-up');
+      }
+    }
+  </script>
+</body>
+</html>

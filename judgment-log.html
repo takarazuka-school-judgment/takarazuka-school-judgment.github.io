@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>登校判断の履歴（過去14日間）</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #fff;
+    margin: 0 0 60px 0;
+    padding: 0;
+  }
+  .container {
+    max-width: 700px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 20px 0;
+  }
+  h1 {
+    text-align: center;
+    color: #1677c1;
+    margin-top: 8px;
+    margin-bottom: 16px;
+  }
+  h1 small {
+    font-size: 0.85rem;
+    color: #555;
+    font-weight: normal;
+    display: block;
+    margin-top: 4px;
+  }
+  .table-wrapper {
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+  th, td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+    word-break: break-word;
+  }
+  th {
+    background-color: #e8f4fc;
+    color: #333;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  tr:hover { background-color: #f5fbff; }
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 700px;
+    background: #1677c1;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 8px 0;
+    box-sizing: border-box;
+    z-index: 1000;
+    border-radius: 0;
+    border-top: none;
+  }
+  .bottom-nav a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 26px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 60px;
+    user-select: none;
+    transition: color 0.2s ease;
+  }
+  .bottom-nav a:hover { color: #a9d1ff; }
+  .bottom-nav a span { font-size: 0.65rem; margin-top: 4px; }
+  .bottom-nav a.line-icon { color: #fff; }
+  .popup-icon {
+    cursor: pointer;
+    color: #1677c1;
+    margin-left: 6px;
+  }
+  .popup-icon:hover { color: #125a93; }
+  @media screen and (max-width: 680px) {
+    .container { padding: 14px 0; }
+    h1 { font-size: 1.6rem; }
+    h1 small { font-size: 0.8rem; }
+    th, td { font-size: 0.9rem; }
+    .bottom-nav a { font-size: 22px; width: 50px; }
+    .bottom-nav a span { font-size: 0.6rem; }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>登校判断の履歴<br /><small>（過去14日間）</small></h1>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>日付</th>
+            <th>登校判断</th>
+            <th>給食</th>
+            <th>備考</th>
+          </tr>
+        </thead>
+        <tbody id="judgment-log">
+          <tr><td colspan="4">読み込み中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <nav class="bottom-nav" aria-label="ページ下部ナビゲーション">
+    <a href="index.html" title="メイン画面へ戻る">
+      <i class="fas fa-home"></i>
+      <span>ホーム</span>
+    </a>
+    <a href="judgment-log.html" title="登校判断履歴">
+      <i class="fas fa-school"></i>
+      <span>判断履歴</span>
+    </a>
+    <a href="alert-log.html" title="警報履歴">
+      <i class="fas fa-exclamation-triangle"></i>
+      <span>警報履歴</span>
+    </a>
+    <a href="https://line.me/R/ti/p/@098cxpyz" target="_blank" rel="noopener" class="line-icon" title="LINE公式アカウント">
+      <i class="fab fa-line"></i>
+      <span>LINE</span>
+    </a>
+  </nav>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js"></script>
+  <script>
+    function jsonpCallback(data) {
+      const tbody = document.getElementById('judgment-log');
+      tbody.innerHTML = '';
+
+      if (!data || data.error) {
+        tbody.innerHTML = `<tr><td colspan="4">データ取得エラー</td></tr>`;
+        return;
+      }
+
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4">データなし</td></tr>`;
+        return;
+      }
+
+      data.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+
+        let judgmentCell = row.judgment || '－';
+        if (row.reason && row.reason.trim()) {
+          judgmentCell += ` <i class="fas fa-comment-dots popup-icon" title="理由" onclick="alert('${row.reason.replace(/'/g,"\\'").replace(/"/g,"&quot;")}')"></i>`;
+        }
+
+        let displayDate = '－';
+        if (row.date) {
+          if (row.date.includes('-')) {
+            const parts = row.date.split('-');
+            if (parts.length === 3) displayDate = parts[1] + '/' + parts[2];
+            else displayDate = row.date;
+          } else if (row.date.includes('/')) {
+            const parts = row.date.split('/');
+            if (parts.length === 3) displayDate = parts[1] + '/' + parts[2];
+            else displayDate = row.date;
+          } else displayDate = row.date;
+        }
+
+        tr.innerHTML = `
+          <td>${displayDate}</td>
+          <td>${judgmentCell}</td>
+          <td>${row.lunch || '－'}</td>
+          <td>${row.remark || '－'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function loadJudgmentLog() {
+      const apiUrl = 'https://script.google.com/macros/s/AKfycby1p3Mof7PFalZmzISlNjDG4iRQgVkFMcAacn229jtO09_a3zgM0eWAUT3n5wRsHKparQ/exec?page=judgment-log&callback=jsonpCallback';
+      const oldScript = document.getElementById('jsonpScript');
+      if (oldScript) oldScript.remove();
+      const script = document.createElement('script');
+      script.src = apiUrl;
+      script.id = 'jsonpScript';
+      document.body.appendChild(script);
+    }
+
+    window.onload = loadJudgmentLog;
+  </script>
+</body>
+</html>
